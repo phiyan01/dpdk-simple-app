@@ -141,6 +141,27 @@ port_init(uint8_t port, struct rte_mempool *mbuf_pool)
 	return 0;
 }
 
+static int
+check_link_status(uint16_t nb_ports)
+{
+	struct rte_eth_link link;
+	uint8_t port;
+
+	for (port = 0; port < nb_ports; port++) {
+		rte_eth_link_get(port, &link);
+
+		if (link.link_status == ETH_LINK_DOWN) {
+			RTE_LOG(INFO, APP, "Port: %u Link DOWN\n", port);
+			return -1;
+	}
+
+	RTE_LOG(INFO, APP, "Port: %u Link UP Speed %u\n",
+			port, link.link_speed);
+	}
+
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
 	int ret;
@@ -200,6 +221,10 @@ int main(int argc, char *argv[])
 
 	if (mac_swap)
 		RTE_LOG(INFO, APP, "MAC address swapping enabled\n");
+
+	ret = check_link_status(nb_ports);
+	if (ret < 0)
+		RTE_LOG(WARNING, APP, "Some port are down\n");
 
 	rte_eal_mp_remote_launch(lcore_main, NULL, SKIP_MASTER);
 
