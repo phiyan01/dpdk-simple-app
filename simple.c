@@ -167,12 +167,28 @@ check_link_status(uint16_t nb_ports)
 }
 
 static void
+print_stats(void)
+{
+	struct rte_eth_stats stats;
+	uint8_t nb_ports = rte_eth_dev_count_total();
+	uint8_t port;
+
+	for (port = 0; port < nb_ports; port++) {
+		printf("\nStatistics for port %u\n", port);
+		rte_eth_stats_get(port, &stats);
+		printf("Rx:%9"PRIu64" Tx:%9"PRIu64" dropped:%9"PRIu64"\n",
+				stats.ipackets, stats.opackets, stats.imissed);
+	}
+}
+
+static void
 signal_hander(int signum)
 {
 	if (signum == SIGINT || signum == SIGTERM) {
 		printf("\n\nSignal %d received, preparing to exit...\n",
 				signum);
 		force_quit = true;
+		print_stats();
 	}
 }
 
