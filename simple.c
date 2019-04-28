@@ -3,15 +3,20 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <rte_mbuf.h>
 
 #include <rte_eal.h>
 #include <rte_common.h>
 #include <rte_ethdev.h>
 
+#define NUM_MBUFS		8192
+#define MBUF_CACHE_SIZE 256
+
 int main(int argc, char *argv[])
 {
 	int ret;
 	uint8_t nb_ports;
+	struct rte_mempool *mbuf_pool;
 
 	/*
 	 * EAL: Environment Abstract Layer"
@@ -46,6 +51,15 @@ int main(int argc, char *argv[])
 	nb_ports = rte_eth_dev_count();
 	if (nb_ports < 2 || (nb_ports & 1))
 		rte_exit(EXIT_FAILURE, "Invalid port number\n");
+
+	/* Creates a new mbuf mempool */
+	mbuf_pool = rte_pktmbuf_pool_create("MBUF_POOL",
+			NUM_MBUFS * nb_ports,
+			MBUF_CACHE_SIZE, 0, RTE_MBUF_DEFAULT_BUF_SIZE,
+			rte_socket_id());
+
+	if (mbuf_pool == NULL)
+		rte_exit(EXIT_FAILURE, "mbuf_pool create failed\n");
 
 	/* There is no un-init for eal */
 
