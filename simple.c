@@ -3,12 +3,16 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
+#include <stdbool.h>
 
 #include <rte_eal.h>
 #include <rte_common.h>
 #include <rte_ethdev.h>
 #include <rte_mbuf.h>
 #include <rte_log.h>
+
+static volatile bool force_quit;
 
 /* Macros for printing using RTE_LOG */
 #define RTE_LOGTYPE_APP RTE_LOGTYPE_USER1
@@ -54,7 +58,7 @@ int lcore_main(void *arg)
 	}
 
 	/*Run until the application is quit or killed. */
-	for (;;) {
+	while (!force_quit) {
 		/* Receive packets on a port and forward them
 		 * on the paired port.
 		 * The mapping is 0 -> 1, 2 -> 3, 3 -> 2, etc.
@@ -162,6 +166,16 @@ check_link_status(uint16_t nb_ports)
 	return 0;
 }
 
+static void
+signal_hander(int signum)
+{
+	if (signum == SIGINT || signum == SIGTERM) {
+		printf("\n\nSignal %d received, preparing to exit...\n",
+				signum);
+		force_quit = true;
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	int ret;
@@ -194,6 +208,10 @@ int main(int argc, char *argv[])
 
 	argc -= ret;
 	argv += ret;
+
+	force_quit = false;
+	signal(SIGINT, signal_hander);
+	signal(SIGTERM, signal_hander);
 
 	/*
 	 * Check that there is an even number of ports to
