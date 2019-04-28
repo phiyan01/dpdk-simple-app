@@ -12,6 +12,8 @@
 #define NUM_MBUFS		8192
 #define MBUF_CACHE_SIZE 256
 
+#define BURST_SIZE		32
+
 #define RX_RING_SIZE	1024
 #define TX_RING_SIZE	1024
 
@@ -20,6 +22,8 @@ static uint8_t forwarding_lcore = 1;
 int lcore_main(void *arg)
 {
 	unsigned int lcore_id = rte_lcore_id();
+	const uint8_t nb_ports = rte_eth_dev_count();
+	uint8_t port;
 
 	if (lcore_id != forwarding_lcore) {
 		return 0;
@@ -27,6 +31,23 @@ int lcore_main(void *arg)
 
 	/*Run until the application is quit or killed. */
 	for (;;) {
+		/* Receive packets on a port */
+		for (port = 0; port < nb_ports; port++) {
+			struct rte_mbuf *bufs[BURST_SIZE];
+			unit16_t nb_rx;
+			uinit16_t buf;
+
+			/* Get burst of RX packets,
+			 * from first port of pair. */
+			nb_rx = rte_eth_rx_burst(port, 0,
+					bufs, BURST_SIZE);
+
+			if (unlikely(nb_rx == 0))
+					continue;
+
+			/* Free any unsent packets. */
+			for (buf = 0; buf < nb_rx; buf++)
+				rte_pktmbuf_free(bufs[buf]);
 	}
 
 	return 0;
