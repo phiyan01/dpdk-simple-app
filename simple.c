@@ -16,11 +16,31 @@
 #define NUM_MBUFS		8192
 #define MBUF_CACHE_SIZE 256
 
+static inline int
+port_init(uint8_t port, struct rte_mempool *mbuf_pool)
+{
+	struct rte_eth_conf port_conf = {
+		.rxmode = { .max_rx_pkt_len = ETHER_MAX_LEN }
+	};
+	const uint16_t nb_rx_queues = 1;
+	const uint16_t nb_tx_queues = 1;
+	int ret;
+
+	/* Configure the Ethernet device. */
+	ret = rte_eth_dev_configure(port, nb_rx_queues, nb_tx_queues, &port_conf);
+
+	if (ret != 0)
+		return ret;
+
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
 	int ret;
 	uint8_t nb_ports;
 	struct rte_mempool *mbuf_pool;
+	uint8_t portid;
 
 	/*
 	 * EAL: Environment Abstract Layer"
@@ -66,6 +86,11 @@ int main(int argc, char *argv[])
 
 	if (mbuf_pool == NULL)
 		rte_exit(EXIT_FAILURE, "mbuf_pool create failed\n");
+
+	/* Initialize all ports. */
+	for (portid = 0; portid < nb_ports; portid++)
+		if (port_init(portid, mbuf_pool) != 0)
+			rte_exit(EXIT_FAILURE, "port init failed\n");
 
 	/* There is no un-init for eal */
 
