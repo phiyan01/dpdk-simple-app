@@ -19,6 +19,24 @@
 #define RX_RING_SIZE	1024
 #define TX_RING_SIZE	1024
 
+static uint8_t forwarding_lcore = 1;
+
+int lcore_main(void *arg)
+{
+	unsigned int lcore_id = rte_lcore_id();
+
+	if (lcore_id != forwarding_lcore) {
+		RTE_LOG(INFO, APP, "lcore %u exiting\n", lcore_id);
+		return 0;
+	}
+
+	/*Run until the application is quit or killed. */
+	for (;;) {
+	}
+
+	return 0;
+}
+
 static inline int
 port_init(uint8_t port, struct rte_mempool *mbuf_pool)
 {
@@ -123,6 +141,10 @@ int main(int argc, char *argv[])
 	for (portid = 0; portid < nb_ports; portid++)
 		if (port_init(portid, mbuf_pool) != 0)
 			rte_exit(EXIT_FAILURE, "port init failed\n");
+
+	rte_eal_mp_remote_launch(lcore_main, NULL, SKIP_MASTER);
+
+	rte_eal_mp_wait_lcore();
 
 	/* There is no un-init for eal */
 
